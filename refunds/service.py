@@ -3,7 +3,7 @@ Lambda retries it with the same request_id."""
 
 import uuid
 
-from .store import Cache, Table
+from .store import Cache, Table, ConditionalCheckFailed
 
 
 class RefundService:
@@ -14,6 +14,15 @@ class RefundService:
     def create_refund(self, request_id: str, merchant_id: str, amount_cents: int) -> str:
         """Refund amount_cents from the merchant's balance and return the refund id."""
         refund_id = str(uuid.uuid4())
+
+        try:
+            self.table.put_item({
+                "pk": f"request#{request_id}",
+                "refund_id": refund_id,
+            }, only_if_new=True)
+        except ConditionalCheckFailed:
+            return self.table.get_item(f"request#{request_id}")["refund_id"]
+
         self.table.put_item({
             "pk": f"refund#{refund_id}",
             "request_id": request_id,
