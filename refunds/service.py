@@ -50,3 +50,4 @@ class RefundService:
         item = self.table.get_item(f"merchant#{merchant_id}") or {"pk": f"merchant#{merchant_id}", "balance_cents": 0}
         item["balance_cents"] += delta_cents
         self.table.put_item(item)
+        self.cache.delete(f"balance:{merchant_id}")
